@@ -20,7 +20,7 @@ class resultWriter:
     def createTableDefinition(self, tableName, tableColumns, tablePK):
 
         _fileName = tableName + '.csv'
-        _fullPath = os.path.join(self.paramDataPath, _fileName)
+        _fullPath = os.path.join(self.paramDataPath, 'out', 'tables', _fileName)
 
         _tableDef = KBCTableDef(
             name=tableName, columns=tableColumns, pk=tablePK)

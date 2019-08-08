@@ -8,10 +8,10 @@ from kbc.env_handler import KBCEnvHandler
 
 
 API_KEY = '#apiKey'
-SENDER_EMAIL_KEY = 'sender.email'
-SENDER_NAME_KEY = 'sender.name'
-REPLYTO_EMAIL_KEY = 'replyTo.email'
-REPLYTO_NAME_KEY = 'replyTo.name'
+# SENDER_EMAIL_KEY = 'sender.email'
+# SENDER_NAME_KEY = 'sender.name'
+# REPLYTO_EMAIL_KEY = 'replyTo.email'
+# REPLYTO_NAME_KEY = 'replyTo.name'
 BATCH_USAGE_KEY = 'batch.usage'
 BATCH_SIZE_KEY = 'batch.size'
 
@@ -27,10 +27,6 @@ class Component(KBCEnvHandler):
         self.validate_config(MANDATORY_PARAMS)
 
         self.paramApiKey = self.cfg_params[API_KEY]
-        # self.paramSenderEmail = self.cfg_params[SENDER_EMAIL_KEY]
-        # self.paramSenderName = self.cfg_params.get(SENDER_NAME_KEY)
-        # self.paramReplyToEmail = self.cfg_params[REPLYTO_EMAIL_KEY]
-        # self.paramReplyToName = self.cfg_params.get(REPLYTO_NAME_KEY)
         self.paramBatchUsage = False if self.cfg_params.get(BATCH_USAGE_KEY) is None else True
         self.paramBatchSize = self.cfg_params.get(BATCH_SIZE_KEY)
 
