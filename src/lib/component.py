@@ -15,7 +15,7 @@ API_KEY = '#apiKey'
 BATCH_USAGE_KEY = 'batch.usage'
 BATCH_SIZE_KEY = 'batch.size'
 
-MANDATORY_PARAMS = [API_KEY, BATCH_USAGE_KEY]
+MANDATORY_PARAMS = [API_KEY]
 REQUIRED_COLUMNS = ['email', 'name', 'templateId']
 
 
@@ -27,8 +27,15 @@ class Component(KBCEnvHandler):
         self.validate_config(MANDATORY_PARAMS)
 
         self.paramApiKey = self.cfg_params[API_KEY]
-        self.paramBatchUsage = False if self.cfg_params.get(BATCH_USAGE_KEY) is None else True
+        self.paramBatchUsage = False if self.cfg_params.get(BATCH_USAGE_KEY) is None \
+            else self.cfg_params[BATCH_USAGE_KEY]
         self.paramBatchSize = self.cfg_params.get(BATCH_SIZE_KEY)
+
+        assert isinstance(self.paramBatchUsage, bool), "Parameter \"batch.usage\" must be a boolean"
+        assert isinstance(self.paramBatchSize, int), "Parameter \"batch.size\" must be a boolean"
+
+        self.varInputTables = self.configuration.get_input_tables()
+        self._checkInputTables()
 
         self.client = sendInBlueClient(apiKey=self.paramApiKey,
                                        # senderEmail=self.paramSenderEmail,
@@ -54,9 +61,6 @@ class Component(KBCEnvHandler):
         logging.debug("ReplyTo object:")
         logging.debug(self.varReplyToObject)
         '''
-
-        self.varInputTables = self.configuration.get_input_tables()
-        self._checkInputTables()
 
     def _checkInputTables(self):
 
@@ -141,10 +145,11 @@ class Component(KBCEnvHandler):
 
             if templateId not in self.client.varTemplates:
 
-                logging.warn("Unknown template %s. Skipping configuration." % templateId)
+                logging.warn(
+                    "Unknown template %s. Skipping configuration." % templateId)
 
                 _errDict = {
-                    'recipients': toObject,
+                    'recipients': json.dumps(toObject),
                     'error': 'templateError',
                     'errorMessage': "Template does not exist.",
                     'templateId': templateId
@@ -159,21 +164,22 @@ class Component(KBCEnvHandler):
 
             else:
 
-                toObjectSplit = [toObject]
+                toObjectSplit = self._divideList(toObject, 1)
 
             for toObj in toObjectSplit:
 
                 logging.debug("Recipients:")
                 logging.debug(toObj)
 
-                _sc, _msg = self.client.sendTransactionalEmail(toObject=toObj, templateId=templateId)
+                _sc, _msg = self.client.sendTransactionalEmail(
+                    toObject=toObj, templateId=templateId)
 
                 if _sc == 201:
 
                     batchesSent += 1
                     _msgDict = {
                         'messageId': _msg,
-                        'recipients': toObj
+                        'recipients': json.dumps(toObj)
                     }
 
                     self.writer.writerMessages.writerow(_msgDict)
@@ -181,10 +187,12 @@ class Component(KBCEnvHandler):
                 else:
 
                     _errDict = {
-                        'recipients': toObj,
+                        'recipients': json.dumps(toObj),
                         'error': 'sendError',
                         'errorMessage': ' - '.join([_sc, _msg]),
                         'templateId': templateId
                     }
 
                     self.writer.writerErrors.writerow(_errDict)
+
+        logging.info("Sent %s emails." % batchesSent)

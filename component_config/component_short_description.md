@@ -1,1 +1,1 @@
-Application for sendinblue
+Sendinblue offers SaaS services for transactional emails and relationship marketing.

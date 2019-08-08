@@ -1,0 +1,2 @@
+"recipients","error","errorMessage","templateId"
+"[{'email': 'invalid@template.com', 'name': 'Invalid'}]","templateError","Template does not exist.","abcd"
