@@ -14,16 +14,16 @@ class sendInBlueClient(HttpClientBase):
                  # replyToName=None, senderName=None
                  ):
 
-                self.paramApiKey = apiKey
+        self.paramApiKey = apiKey
 
-                _def_headers = {"Accept": "application/json",
-                                "api-key": apiKey}
+        _def_headers = {"Accept": "application/json",
+                        "api-key": apiKey}
 
-                HttpClientBase.__init__(self, base_url=BASE_URL, max_retries=10,
-                                        default_http_header=_def_headers, status_forcelist=(500, 502),
-                                        backoff_factor=0.3)
+        HttpClientBase.__init__(self, base_url=BASE_URL, max_retries=10,
+                                default_http_header=_def_headers, status_forcelist=(500, 502),
+                                backoff_factor=0.3)
 
-                self._getTemplates()
+        self._getTemplates()
 
     def _getTemplates(self):
 
