@@ -1,117 +1,194 @@
-import glob
+import csv
+import json
 import logging
-import os
-import shutil
 import sys
+from lib.client import sendInBlueClient
+from lib.result import resultWriter
 from kbc.env_handler import KBCEnvHandler
 
 
-MODE_KEY = 'mode'
-PATTERN_KEY = 'pattern'
-REPLACEMENT_KEY = 'replacement'
-MANDATORY_PARS = [MODE_KEY, PATTERN_KEY, REPLACEMENT_KEY]
+API_KEY = '#apiKey'
+SENDER_EMAIL_KEY = 'sender.email'
+SENDER_NAME_KEY = 'sender.name'
+REPLYTO_EMAIL_KEY = 'replyTo.email'
+REPLYTO_NAME_KEY = 'replyTo.name'
+BATCH_USAGE_KEY = 'batch.usage'
+BATCH_SIZE_KEY = 'batch.size'
+
+MANDATORY_PARAMS = [API_KEY, BATCH_USAGE_KEY]
+REQUIRED_COLUMNS = ['email', 'name', 'templateId']
 
 
 class Component(KBCEnvHandler):
 
     def __init__(self):
 
-        KBCEnvHandler.__init__(self, MANDATORY_PARS)
+        KBCEnvHandler.__init__(self, MANDATORY_PARAMS)
+        self.validate_config(MANDATORY_PARAMS)
 
-        # Parameter fetching
-        # self.paramMode = self.cfg_params[MODE_KEY]
-        if self.cfg_params[PATTERN_KEY] == '{{NULL-BYTE}}':
+        self.paramApiKey = self.cfg_params[API_KEY]
+        # self.paramSenderEmail = self.cfg_params[SENDER_EMAIL_KEY]
+        # self.paramSenderName = self.cfg_params.get(SENDER_NAME_KEY)
+        # self.paramReplyToEmail = self.cfg_params[REPLYTO_EMAIL_KEY]
+        # self.paramReplyToName = self.cfg_params.get(REPLYTO_NAME_KEY)
+        self.paramBatchUsage = False if self.cfg_params.get(BATCH_USAGE_KEY) is None else True
+        self.paramBatchSize = self.cfg_params.get(BATCH_SIZE_KEY)
 
-            self.paramPattern = b'\x00'
+        self.client = sendInBlueClient(apiKey=self.paramApiKey,
+                                       # senderEmail=self.paramSenderEmail,
+                                       # senderName=self.paramSenderName,
+                                       # replyToEmail=self.paramReplyToEmail,
+                                       # replyToName=self.paramReplyToName
+                                       )
 
-        else:
+        self.writer = resultWriter(self.data_path)
 
-            self.paramPattern = self.cfg_params[PATTERN_KEY].encode('utf-8')
+        '''
+        self.varSenderObject = {'email': self.paramSenderEmail}
+        if self.paramSenderName is not None or self.paramSenderName != '':
+            self.varSenderObject['name'] = self.paramSenderName
 
-        if self.cfg_params.get(REPLACEMENT_KEY) is None:
+        self.varReplyToObject = {'email': self.paramReplyToEmail}
+        if self.paramReplyToName is not None or self.paramReplyToName != '':
+            self.varReplyToObject['name'] = self.paramReplyToName
 
-            self.paramReplacement = ''.encode('utf-8')
+        logging.debug("Sender object:")
+        logging.debug(self.varSenderObject)
 
-        else:
+        logging.debug("ReplyTo object:")
+        logging.debug(self.varReplyToObject)
+        '''
 
-            self.paramReplacement = self.cfg_params[REPLACEMENT_KEY].encode('utf-8')
+        self.varInputTables = self.configuration.get_input_tables()
+        self._checkInputTables()
 
-        self.files_in_path = os.path.join(self.data_path, 'in', 'files')
-        self.files_out_path = os.path.join(self.data_path, 'out', 'files')
+    def _checkInputTables(self):
 
-        logging.debug("Pattern to be replaced:")
-        logging.debug(self.paramPattern)
+        if len(self.varInputTables) == 0:
 
-        logging.debug("Replacement pattern:")
-        logging.debug(self.paramReplacement)
-
-    def changePathLocation(self, inPath):
-
-        if '/in/files/' in inPath:
-
-            return inPath.replace('/in/files/', '/out/files/')
-
-        elif '/tables/' in inPath:
-
-            return inPath.replace('/in/tables/', '/out/tables/')
-
-        else:
-
-            logging.error(
-                "No matching criteria for path. Make sure the path is in correct form: ./in/files or ./in/tables.")
+            logging.error("No input table provided.")
             sys.exit(1)
 
-    def identifyAndCopyManifests(self):
+        for _table in self.varInputTables:
 
-        fileManifests = glob.glob(os.path.join(
-            self.files_in_path, '*manifest'))
-        tableManifests = glob.glob(os.path.join(
-            self.tables_in_path, '*manifest'))
-        allManifests = fileManifests + tableManifests
+            _tablePath = _table['full_path']
+            _manPath = _tablePath + '.manifest'
 
-        logging.debug(allManifests)
+            with open(_manPath) as _manFile:
 
-        for _manifestPath in allManifests:
+                _manifest = json.load(_manFile)
 
-            _manifestOutPath = self.changePathLocation(_manifestPath)
-            shutil.copyfile(_manifestPath, _manifestOutPath)
+            _columnDiff = set(REQUIRED_COLUMNS) - set(_manifest['columns'])
 
-    def replaceCharacterStandard(self, filePath, outPath, pattern, replacement):
+            if len(_columnDiff) != 0:
 
-        with open(filePath, 'rb') as inFile, open(outPath, 'wb') as outFile:
+                logging.error("Missing columns %s in table %s. Please check the input mapping." %
+                              (list(_columnDiff), _table['source']))
+                sys.exit(1)
 
-            for row in inFile:
-                logging.debug(row)
-                replacedRow = row.replace(pattern, replacement)
-                logging.debug(replacedRow)
-                outFile.write(replacedRow)
+    def splitRecipients(self):
+
+        templateIds = []
+        recipients = {}
+
+        for _table in self.varInputTables:
+
+            _tablePath = _table['full_path']
+            with open(_tablePath) as tableFile:
+
+                _reader = csv.DictReader(tableFile)
+
+                for row in _reader:
+
+                    _tId = row['templateId']
+
+                    if _tId.isdigit() is True:
+
+                        _tIdConverted = int(_tId)
+
+                    else:
+
+                        _tIdConverted = _tId
+
+                    toRecipient = {'email': row['email'],
+                                   'name': row['name']}
+
+                    if _tIdConverted not in templateIds:
+
+                        templateIds += [_tIdConverted]
+                        recipients[_tIdConverted] = [toRecipient]
+
+                    elif _tIdConverted in templateIds:
+
+                        recipients[_tIdConverted] += [toRecipient]
+
+        logging.debug("Recipients object:")
+        logging.debug(recipients)
+
+        self.varRecipients = recipients
+
+    @staticmethod
+    def _divideList(listToDivide, resultSize):
+
+        for i in range(0, len(listToDivide), resultSize):
+
+            yield listToDivide[i:i + resultSize]
 
     def run(self):
 
-        self.identifyAndCopyManifests()
+        self.splitRecipients()
+        batchesSent = 0
 
-        fileCSV = glob.glob(os.path.join(self.files_in_path, '**', '*[!manifest]'), recursive=True)
-        tableCSV = glob.glob(os.path.join(self.tables_in_path, '**', '*[!manifest]'), recursive=True)
+        for templateId in self.varRecipients:
 
-        allCSV = fileCSV + tableCSV
+            toObject = self.varRecipients[templateId]
 
-        logging.debug("All files:")
-        logging.debug(allCSV)
+            if templateId not in self.client.varTemplates:
 
-        logging.debug(self.data_path)
-        logging.debug(self.files_in_path)
+                logging.warn("Unknown template %s. Skipping configuration." % templateId)
 
-        for inPath in allCSV:
+                _errDict = {
+                    'recipients': toObject,
+                    'error': 'templateError',
+                    'errorMessage': "Template does not exist.",
+                    'templateId': templateId
+                }
 
-            logging.info("Processing file %s..." % inPath)
+                self.writer.writerErrors.writerow(_errDict)
+                continue
 
-            outPath = self.changePathLocation(inPath)
+            if self.paramBatchUsage is True:
 
-            parentDir = os.path.dirname(outPath)
-            if not os.path.exists(parentDir):
+                toObjectSplit = self._divideList(toObject, self.paramBatchSize)
 
-                os.makedirs(parentDir)
+            else:
 
-            self.replaceCharacterStandard(inPath, outPath, self.paramPattern, self.paramReplacement)
+                toObjectSplit = [toObject]
 
-            logging.info("Processing of %s finished." % inPath)
+            for toObj in toObjectSplit:
+
+                logging.debug("Recipients:")
+                logging.debug(toObj)
+
+                _sc, _msg = self.client.sendTransactionalEmail(toObject=toObj, templateId=templateId)
+
+                if _sc == 201:
+
+                    batchesSent += 1
+                    _msgDict = {
+                        'messageId': _msg,
+                        'recipients': toObj
+                    }
+
+                    self.writer.writerMessages.writerow(_msgDict)
+
+                else:
+
+                    _errDict = {
+                        'recipients': toObj,
+                        'error': 'sendError',
+                        'errorMessage': ' - '.join([_sc, _msg]),
+                        'templateId': templateId
+                    }
+
+                    self.writer.writerErrors.writerow(_errDict)

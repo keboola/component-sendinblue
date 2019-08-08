@@ -35,4 +35,4 @@ if __name__ == '__main__':
     c = Component()
     c.run()
 
-    logging.info("Replacement process finished!")
+    logging.info("Sending process finished!")
