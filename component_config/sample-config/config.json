@@ -20,8 +20,8 @@
   },
   "parameters": {
     "#apiKey": "API-KEY",
-    "batch.usage": true,
-    "batch.size": 100
+    "batchUsage": true,
+    "batchSize": 100
   },
   "image_parameters": {},
   "authorization": {}

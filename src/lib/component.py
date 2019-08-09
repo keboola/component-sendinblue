@@ -12,8 +12,8 @@ API_KEY = '#apiKey'
 # SENDER_NAME_KEY = 'sender.name'
 # REPLYTO_EMAIL_KEY = 'replyTo.email'
 # REPLYTO_NAME_KEY = 'replyTo.name'
-BATCH_USAGE_KEY = 'batch.usage'
-BATCH_SIZE_KEY = 'batch.size'
+BATCH_USAGE_KEY = 'batchUsage'
+BATCH_SIZE_KEY = 'batchSize'
 
 MANDATORY_PARAMS = [API_KEY]
 REQUIRED_COLUMNS = ['email', 'name', 'templateId']
