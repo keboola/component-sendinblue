@@ -35,7 +35,8 @@ class sendInBlueClient(HttpClientBase):
 
             logging.error("API request received %s: %s. Process exiting!" % (_template_sc, _template_js['message']))
             logging.error("Please check the credentials.")
-            sys.exit(2)
+
+            sys.exit(1)
 
         elif _template_sc == 200:
 
@@ -49,7 +50,6 @@ class sendInBlueClient(HttpClientBase):
 
         _url = os.path.join(self.base_url, 'email')
         _body = json.dumps({
-            # 'sender': senderObject,
             'to': toObject,
             'templateId': templateId
         })
