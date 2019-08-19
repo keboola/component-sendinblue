@@ -2,9 +2,7 @@
   "type": "object",
   "title": "Parameters",
   "required": [
-    "#apiKey",
-    "batchUsage",
-    "batchSize"
+    "#apiKey"
   ],
   "properties": {
     "#apiKey": {
@@ -14,21 +12,6 @@
       "minLength": 1,
       "description": "API key to Sendinblue service.</br>Follow the <a href='https://help.sendinblue.com/hc/en-us/articles/209467485-What-s-an-API-key-and-how-can-I-get-mine-'>article</a> to obtain one.",
       "propertyOrder": 100
-    },
-    "batchSize": {
-      "type": "integer",
-      "title": "Batch size",
-      "default": 100,
-      "maximum": 1000,
-      "minimum": 2,
-      "propertyOrder": 300
-    },
-    "batchUsage": {
-      "type": "boolean",
-      "title": "Processing in batches",
-      "default": false,
-      "description": "Marks, whether batch processing should be used. More info can be found in <a href='https://bitbucket.org/kds_consulting_team/kds-team.app-sendinblue/src/master/README.md'>documentation</a>. Offers greater reliability but slower speeds.",
-      "propertyOrder": 200
     }
   }
 }

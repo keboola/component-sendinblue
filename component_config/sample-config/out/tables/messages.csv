@@ -1,3 +1,2 @@
-"messageId","recipients"
-"<201908080342.59760075639@smtp-relay.mailin.fr>","[{'email': 'john@doe.com', 'name': 'John Doe'}]"
-"<201908080342.63304756690@smtp-relay.mailin.fr>","[{'email': 'radim@parek.cz', 'name': 'Radim Parek'}]"
+"messageId","emailObject"
+"<201908191032.63550413258@smtp-relay.mailin.fr>",""

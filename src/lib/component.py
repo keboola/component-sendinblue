@@ -8,15 +8,9 @@ from kbc.env_handler import KBCEnvHandler
 
 
 API_KEY = '#apiKey'
-# SENDER_EMAIL_KEY = 'sender.email'
-# SENDER_NAME_KEY = 'sender.name'
-# REPLYTO_EMAIL_KEY = 'replyTo.email'
-# REPLYTO_NAME_KEY = 'replyTo.name'
-BATCH_USAGE_KEY = 'batchUsage'
-BATCH_SIZE_KEY = 'batchSize'
 
 MANDATORY_PARAMS = [API_KEY]
-REQUIRED_COLUMNS = ['email', 'name', 'templateId']
+REQUIRED_COLUMNS = ['emailObject', 'templateId']
 
 
 class Component(KBCEnvHandler):
@@ -27,40 +21,11 @@ class Component(KBCEnvHandler):
         self.validate_config(MANDATORY_PARAMS)
 
         self.paramApiKey = self.cfg_params[API_KEY]
-        self.paramBatchUsage = False if self.cfg_params.get(BATCH_USAGE_KEY) is None \
-            else self.cfg_params[BATCH_USAGE_KEY]
-        self.paramBatchSize = self.cfg_params.get(BATCH_SIZE_KEY)
-
-        assert isinstance(self.paramBatchUsage, bool), "Parameter \"batch.usage\" must be a boolean"
-        assert isinstance(self.paramBatchSize, int), "Parameter \"batch.size\" must be a boolean"
-
         self.varInputTables = self.configuration.get_input_tables()
         self._checkInputTables()
 
-        self.client = sendInBlueClient(apiKey=self.paramApiKey,
-                                       # senderEmail=self.paramSenderEmail,
-                                       # senderName=self.paramSenderName,
-                                       # replyToEmail=self.paramReplyToEmail,
-                                       # replyToName=self.paramReplyToName
-                                       )
-
+        self.client = sendInBlueClient(apiKey=self.paramApiKey)
         self.writer = resultWriter(self.data_path)
-
-        '''
-        self.varSenderObject = {'email': self.paramSenderEmail}
-        if self.paramSenderName is not None or self.paramSenderName != '':
-            self.varSenderObject['name'] = self.paramSenderName
-
-        self.varReplyToObject = {'email': self.paramReplyToEmail}
-        if self.paramReplyToName is not None or self.paramReplyToName != '':
-            self.varReplyToObject['name'] = self.paramReplyToName
-
-        logging.debug("Sender object:")
-        logging.debug(self.varSenderObject)
-
-        logging.debug("ReplyTo object:")
-        logging.debug(self.varReplyToObject)
-        '''
 
     def _checkInputTables(self):
 
@@ -86,113 +51,122 @@ class Component(KBCEnvHandler):
                               (list(_columnDiff), _table['source']))
                 sys.exit(1)
 
-    def splitRecipients(self):
+    def _check_json(self, dictToCheck, dictType):
+        # type = ['to', 'bcc', 'params']
 
-        templateIds = []
-        recipients = {}
+        if dictToCheck is None and dictType in ('cc', 'bcc', 'params'):
 
-        for _table in self.varInputTables:
+            return True
 
-            _tablePath = _table['full_path']
-            with open(_tablePath) as tableFile:
+        try:
 
-                _reader = csv.DictReader(tableFile)
+            dictJS = json.loads(dictToCheck)
 
-                for row in _reader:
+            if dictType in ('to', 'cc', 'bcc') and isinstance(dictJS, list):
 
-                    _tId = row['templateId']
+                return True
 
-                    if _tId.isdigit() is True:
+            elif dictType in ('to', 'cc', 'bcc') and not isinstance(dictJS, list):
 
-                        _tIdConverted = int(_tId)
+                return False
 
-                    else:
+            elif dictType == 'params' and isinstance(dictJS, dict):
 
-                        _tIdConverted = _tId
+                return True
 
-                    toRecipient = {'email': row['email'],
-                                   'name': row['name']}
+            elif dictType == 'params' and not isinstance(dictJS, dict):
 
-                    if _tIdConverted not in templateIds:
-
-                        templateIds += [_tIdConverted]
-                        recipients[_tIdConverted] = [toRecipient]
-
-                    elif _tIdConverted in templateIds:
-
-                        recipients[_tIdConverted] += [toRecipient]
-
-        logging.debug("Recipients object:")
-        logging.debug(recipients)
-
-        self.varRecipients = recipients
-
-    @staticmethod
-    def _divideList(listToDivide, resultSize):
-
-        for i in range(0, len(listToDivide), resultSize):
-
-            yield listToDivide[i:i + resultSize]
-
-    def run(self):
-
-        self.splitRecipients()
-        batchesSent = 0
-
-        for templateId in self.varRecipients:
-
-            toObject = self.varRecipients[templateId]
-
-            if templateId not in self.client.varTemplates:
-
-                logging.warn(
-                    "Unknown template %s. Skipping configuration." % templateId)
-
-                _errDict = {
-                    'recipients': json.dumps(toObject),
-                    'error': 'templateError',
-                    'errorMessage': "Template does not exist.",
-                    'templateId': templateId
-                }
-
-                self.writer.writerErrors.writerow(_errDict)
-                continue
-
-            if self.paramBatchUsage is True:
-
-                toObjectSplit = self._divideList(toObject, self.paramBatchSize)
+                return False
 
             else:
 
-                toObjectSplit = self._divideList(toObject, 1)
+                logging.error("Unhandled dictType.")
+                sys.exit(2)
 
-            for toObj in toObjectSplit:
+        except ValueError:
 
-                logging.debug("Recipients:")
-                logging.debug(toObj)
+            return False
 
-                _sc, _msg = self.client.sendTransactionalEmail(
-                    toObject=toObj, templateId=templateId)
+    def run(self):
 
-                if _sc == 201:
+        for table in self.varInputTables:
 
-                    batchesSent += 1
-                    _msgDict = {
-                        'messageId': _msg,
-                        'recipients': json.dumps(toObj)
-                    }
+            with open(table['full_path'], 'r') as _inFile:
 
-                    self.writer.writerMessages.writerow(_msgDict)
+                _rdr = csv.DictReader(_inFile)
 
-                else:
+                for row in _rdr:
 
-                    _errDict = {
-                        'recipients': json.dumps(toObj),
-                        'error': 'sendError',
-                        'errorMessage': ' - '.join([_sc, _msg]),
-                        'templateId': templateId
-                    }
+                    toObject = row['emailObject']
+                    templateId = row['templateId']
+                    paramsObject = row.get('params')
+                    ccObject = row.get('ccObject')
+                    bccObject = row.get('bccObject')
 
-                    self.writer.writerErrors.writerow(_errDict)
+                    if templateId not in self.client.varTemplates:
 
-        logging.info("Sent %s emails." % batchesSent)
+                        logging.warn("Unknown template %s. Skipping row!" % templateId)
+
+                        _errDict = {
+                                    'error': 'templateError',
+                                    'errorMessage': "Template does not exist.",
+                                    'additionalInfo': templateId,
+                                    'emailObject': toObject
+                                    }
+
+                        self.writer.writerErrors.writerow(_errDict)
+                        continue
+
+                    if paramsObject == '' or paramsObject == '{}':
+                        paramsObject = None
+
+                    if ccObject == '' or ccObject == '{}':
+                        ccObject = None
+
+                    if bccObject == '' or bccObject == '{}':
+                        bccObject = None
+
+                    toObjectCheck = self._check_json(toObject, 'to')
+                    paramsObjectCheck = self._check_json(paramsObject, 'params')
+                    ccObjectCheck = self._check_json(ccObject, 'cc')
+                    bccObjectCheck = self._check_json(bccObject, 'bcc')
+
+                    if not all([toObjectCheck, paramsObjectCheck, ccObjectCheck, bccObjectCheck]):
+
+                        logging.warn("Invalid object detected.")
+
+                        _errDict = {
+                                    'error': 'JSONError',
+                                    'errorMessage': "Invalid input format for one of " +
+                                                    "emailObject, paramObject, ccObject, bccObject.",
+                                    'additionalInfo': [toObjectCheck, paramsObjectCheck, ccObjectCheck, bccObjectCheck],
+                                    'emailObject': toObject
+                                    }
+
+                        self.writer.writerErrors.writerow(_errDict)
+
+                        continue
+
+                    _sc, _msg = self.client.sendTransactionalEmail(
+                        toObject=toObject, templateId=templateId, params=paramsObject,
+                        cc=ccObject, bcc=bccObject)
+
+                    if _sc == 201:
+
+                        _msgDict = {
+                            'messageId': _msg,
+                            'recipients': json.dumps(toObject)
+                        }
+
+                        self.writer.writerMessages.writerow(_msgDict)
+
+                    else:
+
+                        _errDict = {
+                            'error': 'sendError',
+                            'errorMessage': _sc,
+                            'additionalInfo': _msg,
+                            'emailObject': json.dumps(toObject)
+                        }
+
+                        self.writer.writerErrors.writerow(_errDict)

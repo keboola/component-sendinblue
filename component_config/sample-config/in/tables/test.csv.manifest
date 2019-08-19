@@ -12,9 +12,11 @@
     "is_alias": false,
     "attributes": [],
     "columns": [
-        "name",
-        "email",
-        "templateId"
+        "emailObject",
+        "templateId",
+        "params",
+        "ccObject",
+        "bccObject"
     ],
     "metadata": [],
     "column_metadata": {}

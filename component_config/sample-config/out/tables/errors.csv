@@ -1,2 +1,3 @@
-"recipients","error","errorMessage","templateId"
-"[{'email': 'invalid@template.com', 'name': 'Invalid'}]","templateError","Template does not exist.","abcd"
+"error","errorMessage","additionalInfo","emailObject"
+"JSONError","Invalid input format for one of emailObject, paramObject, ccObject, bccObject.","[False, True, True, True]","invalidObject@emaik.com"
+"templateError","Template does not exist.","dasdgsad","[{""email"":""john@doe.com"",""name"":""John Doe""}]"

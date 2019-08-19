@@ -9,10 +9,7 @@ BASE_URL = 'https://api.sendinblue.com/v3/smtp'
 
 class sendInBlueClient(HttpClientBase):
 
-    def __init__(self, apiKey,
-                 # senderEmail, replyToEmail,
-                 # replyToName=None, senderName=None
-                 ):
+    def __init__(self, apiKey):
 
         self.paramApiKey = apiKey
 
@@ -41,25 +38,35 @@ class sendInBlueClient(HttpClientBase):
         elif _template_sc == 200:
 
             logging.info("Templates obtained.")
-            self.varTemplates = [t['id'] for t in _template_js['templates']]
+            self.varTemplates = [str(t['id']) for t in _template_js['templates']]
 
             logging.debug("Template ids downloaded:")
             logging.debug(self.varTemplates)
 
-    def sendTransactionalEmail(self, toObject, templateId):
+    def sendTransactionalEmail(self, toObject, templateId, params=None, cc=None, bcc=None):
 
         _url = os.path.join(self.base_url, 'email')
-        _body = json.dumps({
-            'to': toObject,
-            'templateId': templateId
-        })
+        _body = {
+            'to': json.loads(toObject),
+            'templateId': int(templateId)
+        }
+
+        if params is not None:
+            _body['params'] = json.loads(params)
+
+        if cc is not None:
+            _body['cc'] = json.loads(cc)
+
+        if bcc is not None:
+            _body['bcc'] = json.loads(bcc)
+
         _header = {
             'Content-Type': 'application/json'
         }
 
         logging.debug(_body)
 
-        _rsp = self.post_raw(_url, data=_body, headers=_header)
+        _rsp = self.post_raw(_url, data=json.dumps(_body), headers=_header)
         _mail_sc, _mail_js = _rsp.status_code, _rsp.json()
 
         if _mail_sc == 201:
@@ -77,4 +84,5 @@ class sendInBlueClient(HttpClientBase):
             else:
 
                 logging.error("Unhandled exception. Exiting!")
+                logging.error("Received %s - %s." % (_mail_sc, _mail_js['message']))
                 sys.exit(2)

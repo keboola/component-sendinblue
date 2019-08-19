@@ -1,4 +1,4 @@
-"email","name","templateId"
-"john@doe.com","John Doe","856"
-"radim@parek.cz","Radim Parek","856"
-"invalid@template.com","Invalid","abcd"
+"emailObject","templateId","params","ccObject","bccObject"
+"[{""email"":""john@doe.com"",""name"":""John Doe""}]","856","{""EVENT"":""BOUGHT""}","[{""email"":""JOHN.DOE@email.com"",""name"":""JD""}]","[{""email"":""Jenny.Doe@email.com""}]"
+"invalidObject@email.com","dasds","{}","",""
+"[{""email"":""john@doe.com"",""name"":""John Doe""}]","dasdgsad","{""EVENT"":""BOUGHT""}","[{""email"":""JOHN.DOE@email.com"",""name"":""JD""}]","[{""email"":""Jenny.Doe@email.com""}]"

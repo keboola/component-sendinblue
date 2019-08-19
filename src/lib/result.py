@@ -3,10 +3,10 @@ import json
 import os
 from kbc.result import KBCResult, KBCTableDef
 
-FIELDS_MESSAGES = ['messageId', 'recipients']
+FIELDS_MESSAGES = ['messageId', 'emailObject']
 PK_MESSAGES = ['messageId']
 
-FIELDS_ERRORS = ['recipients', 'error', 'errorMessage', 'templateId']
+FIELDS_ERRORS = ['error', 'errorMessage', 'additionalInfo', 'emailObject']
 PK_ERRORS = []
 
 
