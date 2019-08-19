@@ -155,7 +155,7 @@ class Component(KBCEnvHandler):
 
                         _msgDict = {
                             'messageId': _msg,
-                            'recipients': json.dumps(toObject)
+                            'emailObject': json.dumps(toObject)
                         }
 
                         self.writer.writerMessages.writerow(_msgDict)
