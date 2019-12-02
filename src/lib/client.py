@@ -67,7 +67,8 @@ class sendInBlueClient(HttpClientBase):
             _body['bcc'] = json.loads(bcc)
 
         _header = {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
         }
 
         logging.debug(_body)
