@@ -26,7 +26,13 @@ class sendInBlueClient(HttpClientBase):
 
         _url = os.path.join(self.base_url, 'templates')
         _rsp = self.get_raw(_url)
-        _template_sc, _template_js = _rsp.status_code, _rsp.json()
+        _template_sc = _rsp.status_code
+
+        try:
+            _template_js = _rsp.json()
+
+        except ValueError:
+            _template_js = {}
 
         if _template_sc == 401:
 
@@ -67,7 +73,13 @@ class sendInBlueClient(HttpClientBase):
         logging.debug(_body)
 
         _rsp = self.post_raw(_url, data=json.dumps(_body), headers=_header)
-        _mail_sc, _mail_js = _rsp.status_code, _rsp.json()
+        _mail_sc = _rsp.status_code
+
+        try:
+            _mail_js = _rsp.json()
+
+        except ValueError:
+            _mail_js = {}
 
         if _mail_sc == 201:
 

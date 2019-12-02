@@ -147,6 +147,8 @@ class Component(KBCEnvHandler):
 
                         continue
 
+                    logging.info(f"Sending email to {toObject}")
+
                     _sc, _msg = self.client.sendTransactionalEmail(
                         toObject=toObject, templateId=templateId, params=paramsObject,
                         cc=ccObject, bcc=bccObject)
