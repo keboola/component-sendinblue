@@ -6,11 +6,11 @@ import logging_gelf.formatters
 from lib.component import Component
 
 # Environment setup
-sys.tracebacklimit = 3
+sys.tracebacklimit = 0
 
 # Logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format='%(asctime)s - %(levelname)-8s : [line:%(lineno)3s] %(message)s',
     datefmt="%Y-%m-%d %H:%M:%S")
 
@@ -26,7 +26,7 @@ if 'KBC_LOGGER_ADDR' in os.environ and 'KBC_LOGGER_PORT' in os.environ:
     # remove default logging to stdout
     logger.removeHandler(logger.handlers[0])
 
-APP_VERSION = '0.2.4'
+APP_VERSION = '0.2.5'
 
 if __name__ == '__main__':
 

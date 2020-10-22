@@ -25,29 +25,50 @@ class sendInBlueClient(HttpClientBase):
     def _getTemplates(self):
 
         _url = os.path.join(self.base_url, 'templates')
-        _rsp = self.get_raw(_url)
-        _template_sc = _rsp.status_code
+        _is_complete = False
+        limit = 50
+        offset = 0
+        all_templates = []
 
-        try:
-            _template_js = _rsp.json()
+        while _is_complete is False:
 
-        except ValueError:
-            _template_js = {}
+            _params = {
+                'limit': limit,
+                'offset': offset
+            }
 
-        if _template_sc == 401:
+            _rsp = self.get_raw(_url, params=_params)
+            _template_sc = _rsp.status_code
 
-            logging.error("API request received %s: %s. Process exiting!" % (_template_sc, _template_js['message']))
-            logging.error("Please check the credentials.")
+            try:
+                _template_js = _rsp.json()
 
-            sys.exit(1)
+            except ValueError:
+                _template_js = {'templates': []}
 
-        elif _template_sc == 200:
+            if _template_sc == 401:
+                logging.error("API request received %s: %s. Process exiting!" % (_template_sc, _template_js['message']))
+                logging.error("Please check the credentials.")
 
-            logging.info("Templates obtained.")
-            self.varTemplates = [str(t['id']) for t in _template_js['templates']]
+                sys.exit(1)
 
-            logging.debug("Template ids downloaded:")
-            logging.debug(self.varTemplates)
+            elif _template_sc == 200:
+
+                all_templates += [str(t['id']) for t in _template_js['templates']]
+
+                if limit > len(_template_js['templates']):
+                    _is_complete = True
+                else:
+                    offset += limit
+
+            else:
+                logging.error(f"Unhandled exception. Received: {_template_sc} - {_template_js}.")
+                sys.exit(1)
+
+        self.varTemplates = all_templates
+
+        logging.debug("Template ids downloaded:")
+        logging.debug(self.varTemplates)
 
     def sendTransactionalEmail(self, toObject, templateId, params=None, cc=None, bcc=None):
 
