@@ -1,12 +1,11 @@
 import logging
 import os
-import sys
 import logging_gelf.handlers
 import logging_gelf.formatters
 from lib.component import Component
 
 # Environment setup
-sys.tracebacklimit = 0
+# sys.tracebacklimit = 0 - removed due to random application errors occurring with no traceback
 
 # Logging
 logging.basicConfig(
