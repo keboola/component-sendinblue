@@ -17,7 +17,7 @@ class sendInBlueClient(HttpClientBase):
                         "api-key": apiKey}
 
         HttpClientBase.__init__(self, base_url=BASE_URL, max_retries=10,
-                                default_http_header=_def_headers, status_forcelist=(500, 502, 503, 524),
+                                default_http_header=_def_headers, status_forcelist=(500, 502, 503, 524, 520),
                                 backoff_factor=0.3)
 
         self._getTemplates()
