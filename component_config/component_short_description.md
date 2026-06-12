@@ -1,1 +1,1 @@
-Sendinblue offers SaaS services for transactional emails and relationship marketing.
+Sends transactional emails to recipient lists via Sendinblue.
